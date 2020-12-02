@@ -18,7 +18,7 @@
                             Validar la no utilización de contraseñas débiles y Eliminar opción "Confirmar el uso de una contraseña débil"
                         </div>
                         <div class="inside">
-                            Cerrar automáticamente la sesión de un usuario cuando ha estado inactivo tras 5 minutos
+                            Cerrar automáticamente la sesión de un usuario cuando ha estado inactivo tras 10 minutos
                         </div>
                         <div class="inside">
                             Destruir el ID de sesión luego de salir o cerrar el sistema

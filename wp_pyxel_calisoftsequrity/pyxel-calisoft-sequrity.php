@@ -77,15 +77,24 @@ function wp_pyxel_script_close_inactive_sesion()
 }
 add_action('admin_head', 'wp_pyxel_script_close_inactive_sesion');
 
-function expiration_destroy_session_id( $expiration, $user_id, $remember ) {
+function expiration_session_id( $expiration, $user_id, $remember ) {
     return $remember ? $expiration : 600;
     $sessions = WP_Session_Tokens::get_instance($user_id);
     $sessions->destroy_all();
     wp_destroy_current_session();
     wp_clear_auth_cookie();
 }
-add_filter( 'auth_cookie_expiration', 'expiration_destroy_session_id', 99, 3 );
-add_action('wp_logout', 'expiration_destroy_session_id');
+add_filter( 'auth_cookie_expiration', 'expiration_session_id', 99, 3 );
+
+function destroy_session_id( $user_id ) {
+    if ( ! isset ( $_GET['logout'] ) ){
+        $sessions = WP_Session_Tokens::get_instance($user_id);
+        $sessions->destroy_all();
+        wp_destroy_current_session();
+        wp_clear_auth_cookie();
+    }
+}
+add_action('wp_logout', 'destroy_session_id');
 
 /*
  * Funcion para forzar el uso de password fuerte
@@ -129,39 +138,78 @@ function hide_admin_bar($content) {
 }
 add_filter( 'show_admin_bar' , 'hide_admin_bar');
 
-/*function wpum_my_psw_field_confirmation( $fields ) {
+/*
+ * Confirm passwd field
+ */
+add_action( 'resetpass_form', function( $user )
+{ ?> <p class="user-wpse-pass2-wrap">
+        <label for="wpse-pass2"><?php _e( 'Confirm new password' ) ?></label><br />
+        <input type="password" name="wpse-pass2" id="wpse-pass2" class="input" 
+               size="20" value="" autocomplete="off" />
+    </p> <?php
+} );
 
-    $fields[ 'confirm_psw' ] = array(
-        'label'       => 'Confirm password',
-        'type'        => 'password',
-        'meta'        => false,
-        'required'    => true,
-        'description' => 'Add something here if needed',
-        'priority' => 30
-    );
+add_action( 'validate_password_reset', function( $errors )
+{
+    if ( isset( $_POST['pass1'] ) && $_POST['pass1'] != $_POST['wpse-pass2'] )
+        $errors->add( 'password_reset_mismatch', __( 'The passwords do not match.' ) );
+} );
 
-    return $fields;
+function wpum_my_psw_field_confirmation( $fields ) {
+
+	$fields[ 'confirm_psw' ] = array(
+		'label'       => 'Confirm password',
+		'type'        => 'password',
+		'meta'        => false,
+		'required'    => true,
+		'description' => 'Add something here if needed',
+		'priority' => 30
+	);
+
+	return $fields;
 
 }
-add_filter( 'wpum_get_registration_fields', 'wpum_my_psw_field_confirmation' );
+
+add_action( 'resetpass_form', function( $user )
+{ ?> <p class="user-wpse-pass2-wrap">
+        <label for="wpse-pass2"><?php _e( 'Confirm new password' ) ?></label><br />
+        <input type="password" name="wpse-pass2" id="wpse-pass2" class="input" 
+               size="20" value="" autocomplete="off" />
+    </p> <?php
+} );
+
+add_action( 'validate_password_reset', function( $errors )
+{
+    if ( isset( $_POST['pass1'] ) && $_POST['pass1'] != $_POST['wpse-pass2'] )
+        $errors->add( 'password_reset_mismatch', __( 'The passwords do not match.' ) );
+} );
+
+add_action( 'login_enqueue_scripts', function ()
+{
+    if ( ! wp_script_is( 'jquery', 'done' ) ) {
+        wp_enqueue_script( 'jquery' );
+    }
+    wp_add_inline_script( 'jquery-migrate', 'jQuery(document).ready(function(){ jQuery( "#pass1" ).data( "reveal", 0 ); });' );
+}, 1 );
+/*add_filter( 'wpum_get_registration_fields', 'wpum_my_psw_field_confirmation' );
 
 function wpum_verify_my_psw_confirmation( $pass, $fields, $values, $form ) {
 
-    if ( $form === 'registration' && isset( $values['register']['confirm_psw'] ) ) {
+	if ( $form === 'registration' && isset( $values['register']['confirm_psw'] ) ) {
 
-        $psw1 = $values['register']['user_password'];
-        $psw2 = $values['register']['confirm_psw'];
+		$psw1 = $values['register']['user_password'];
+		$psw2 = $values['register']['confirm_psw'];
 
-        if ( $psw1 !== $psw2 ) {
-            return new WP_Error( 'psw-validation-error', 'Passwords do not match.' );
-        }
+		if ( $psw1 !== $psw2 ) {
+			return new WP_Error( 'psw-validation-error', 'Passwords do not match.' );
+		}
 
-    }
+	}
 
-    return $pass;
+	return $pass;
 
 }
-add_filter( 'submit_wpum_form_validate_fields', 'wpum_verify_my_psw_confirmation', 10, 4 );*/
+add_filter( 'submit_wpum_form_validate_fields', 'wpum_verify_my_psw_confirmation', 10, 4 );
 
 //register_activation_hook(__FILE__.array($jedvPlugin, 'activate'));
 //register_deactivation_hook(__FILE__.array($jedvPlugin, 'deactivate'));
